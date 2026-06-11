@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Songo — Jeu traditionnel Ekang</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ============================================================
+     ÉCRAN 1 : ACCUEIL
+============================================================ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-bg">
+    <div class="wood-grain"></div>
+  </div>
+  <div class="welcome-content">
+    <div class="welcome-logo">🌰</div>
+    <h1 class="welcome-title">SONGO</h1>
+    <p class="welcome-sub">Jeu de semailles des peuples Ekang</p>
+    <div class="welcome-divider"></div>
+    <div class="welcome-btns">
+      <button class="btn-welcome" id="btn-vs-human">⚔️ Joueur contre Joueur</button>
+      <button class="btn-welcome btn-welcome-alt" id="btn-vs-ai">🤖 Joueur contre Machine</button>
+    </div>
+    <button class="btn-rules-welcome" id="btn-rules-welcome">📜 Règles du jeu</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     ÉCRAN 2 : SAISIE DES PRÉNOMS
+============================================================ -->
+<div id="screen-names" class="screen">
+  <div class="names-panel">
+    <h2 class="names-title">Qui joue ?</h2>
+    <div class="names-form" id="names-form">
+      <div class="name-field">
+        <label>🔵 Joueur 1 (Nord)</label>
+        <input type="text" id="input-p1" placeholder="Joueur 1" maxlength="16"/>
+      </div>
+      <div class="name-field" id="field-p2">
+        <label>🟠 Joueur 2 (Sud)</label>
+        <input type="text" id="input-p2" placeholder="Joueur 2" maxlength="16"/>
+      </div>
+    </div>
+    <div class="names-actions">
+      <button class="btn-back" id="btn-back-names">← Retour</button>
+      <button class="btn-start" id="btn-start">Commencer la partie 🌰</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ÉCRAN 3 : JEU
+============================================================ -->
+<div id="screen-game" class="screen">
+  <div class="container">
+
+    <!-- Header compact -->
+    <header class="header">
+      <button class="btn-home" id="btn-home" title="Accueil">🏠</button>
+      <h1 class="game-title">🌰 SONGO</h1>
+      <button class="btn-rules-game" id="btn-rules-game" title="Règles">📜</button>
+    </header>
+
+    <!-- Scores -->
+    <div class="scores">
+      <div class="score score-north" id="score-north-box">
+        <span class="player-emoji">🔵</span>
+        <div class="score-info">
+          <span class="player-name" id="name-north">Joueur 1</span>
+          <span class="player-score" id="score-north">0</span>
+        </div>
+        <span class="turn-dot" id="turn-north"></span>
+      </div>
+      <div class="objective">
+        <span class="obj-label">Objectif</span>
+        <span class="obj-value">40</span>
+      </div>
+      <div class="score score-south" id="score-south-box">
+        <span class="turn-dot" id="turn-south">●</span>
+        <div class="score-info">
+          <span class="player-name" id="name-south">Joueur 2</span>
+          <span class="player-score" id="score-south">0</span>
+        </div>
+        <span class="player-emoji">🟠</span>
+      </div>
+    </div>
+
+    <!-- PLATEAU BOIS -->
+    <div class="board-wrap">
+      <div class="board-wood">
+        <!-- Étiquette nord -->
+        <div class="board-label">
+          <span class="camp-name north-camp" id="label-north">🔵 Joueur 1</span>
+          <span class="direction">C7 C6 C5 C4 C3 C2 C1 →</span>
+        </div>
+        <!-- Rangée Nord : cases 7→1 (gauche à droite) -->
+        <div class="row" id="north-row"></div>
+        <!-- Séparateur bois -->
+        <div class="wood-split">
+          <div class="wood-split-line"></div>
+          <span class="wood-split-text">✦ SONGO ✦</span>
+          <div class="wood-split-line"></div>
+        </div>
+        <!-- Rangée Sud : cases 1→7 (gauche à droite) -->
+        <div class="row" id="south-row"></div>
+        <!-- Étiquette sud -->
+        <div class="board-label">
+          <span class="direction">← C1 C2 C3 C4 C5 C6 C7</span>
+          <span class="camp-name south-camp" id="label-south">Joueur 2 🟠</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message -->
+    <div class="message-box" id="message-box">
+      <p id="message">Choisissez une case pour commencer.</p>
+    </div>
+
+    <!-- Contrôles -->
+    <div class="controls">
+      <button class="btn btn-undo" id="btn-undo" disabled>↩️ Annuler</button>
+      <button class="btn btn-new" id="btn-new">🔄 Nouvelle Partie</button>
+      <button class="btn btn-history" id="btn-history">📋 Historique</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <span>Graines: <strong id="total-seeds">70</strong></span>
+      <span>Coups: <strong id="move-count">0</strong></span>
+    </div>
+
+    <!-- Historique (déroulant) -->
+    <div class="history-panel" id="history-panel">
+      <div class="history-header">📋 5 derniers coups</div>
+      <ul id="history-list"></ul>
+    </div>
+
+    <!-- Tableau des scores multi-parties -->
+    <div class="scoreboard">
+      <div class="scoreboard-title">🏆 Tableau des parties</div>
+      <div class="scoreboard-row">
+        <span id="sb-name1">Joueur 1</span>
+        <span id="sb-wins1" class="sb-wins">0</span>
+        <span class="sb-vs">—</span>
+        <span id="sb-wins2" class="sb-wins">0</span>
+        <span id="sb-name2">Joueur 2</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 Songo — Jeu traditionnel Ekang</p>
+    </footer>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL RÈGLES
+============================================================ -->
+<div class="modal" id="rules-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>📜 Règles du Songo</h2>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h3>🎯 Objectif</h3>
+      <p>Capturer au moins <strong>40 graines</strong> sur les 70 en jeu.</p>
+      <h3>🏗️ Le Plateau</h3>
+      <p>14 cases (7 par joueur). Les cases sont numérotées 1 à 7. La distribution se fait dans le sens <strong>anti-horaire</strong> :</p>
+      <p><em>Joueur 1 (Nord) : de sa case 7 vers case 1, puis chez Joueur 2 de case 1 vers case 7.</em></p>
+      <h3>🔄 Le Semis</h3>
+      <ul>
+        <li>Prenez toutes les graines d'une de vos cases non vides.</li>
+        <li>Distribuez-les une par une dans le sens anti-horaire.</li>
+        <li>Si plus de 13 graines : la case de départ est sautée.</li>
+      </ul>
+      <h3>🌾 Les Captures</h3>
+      <ul>
+        <li>Dernière graine dans le camp adverse → si la case contient 2, 3 ou 4 graines : capture !</li>
+        <li>Prise en chaîne possible vers l'arrière.</li>
+        <li>Case n°1 adverse : pas de capture directe (sauf en chaîne).</li>
+        <li>Interdit de vider complètement le camp adverse.</li>
+      </ul>
+      <h3>🤝 Solidarité</h3>
+      <p>Si le camp adverse est vide, vous devez jouer un coup qui y envoie des graines.</p>
+      <h3>🏁 Fin de Partie</h3>
+      <ul>
+        <li>Un joueur atteint 40 graines → Victoire !</li>
+        <li>Moins de 10 graines sur le plateau → Fin.</li>
+        <li>Solidarité impossible → Fin.</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-new" id="modal-ok">C'est compris ! 🎮</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL VICTOIRE
+============================================================ -->
+<div class="modal" id="victory-modal">
+  <div class="modal-content victory-content">
+    <div id="confetti-zone"></div>
+    <div class="victory-body">
+      <div class="victory-trophy">🏆</div>
+      <h2 id="victory-title">Victoire !</h2>
+      <p id="victory-msg"></p>
+      <div class="victory-scores">
+        <div class="vscore-box">
+          <div class="vscore-name" id="v-name1">Joueur 1</div>
+          <div class="vscore-val" id="v-score1">0</div>
+          <div class="vscore-label">graines</div>
+        </div>
+        <div class="vscore-box">
+          <div class="vscore-name" id="v-name2">Joueur 2</div>
+          <div class="vscore-val" id="v-score2">0</div>
+          <div class="vscore-label">graines</div>
+        </div>
+      </div>
+      <div class="victory-btns">
+        <button class="btn btn-new" id="victory-new">🔄 Revanche !</button>
+        <button class="btn btn-rules" id="victory-home">🏠 Accueil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
