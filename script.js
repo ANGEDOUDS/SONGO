@@ -3,39 +3,22 @@
  * Auteur : FOMENA NGASSEU ANGE 24G2934
  * INF222 — Programmation Web — UY1 2025-2026
  *
- * RÈGLE DE DISTRIBUTION CIRCULAIRE :
+ * RÈGLE DE DISTRIBUTION CIRCULAIRE (chaîne unique, un seul sens) :
  *
- *   Joueur 0 (Nord) joue depuis sa case idx (C1=0 .. C7=6) :
- *     → Dans son propre camp (Nord) : de idx+1 vers C7 (idx croissant : idx+1, idx+2, ..., 6)
- *     → Puis dans le camp adverse (Sud) : de C7 vers C1 (idx décroissant : 6, 5, ..., 0)
- *     → Puis revient en Nord de C1 ... (boucle)
+ *   Le plateau forme une chaîne circulaire de 14 cases, parcourue dans
+ *   UN SEUL ET MÊME SENS pour les deux joueurs :
  *
- *   Joueur 1 (Sud) joue depuis sa case idx (C1=0 .. C7=6) :
- *     → Dans son propre camp (Sud) : de idx+1 vers C7 (idx croissant : idx+1, idx+2, ..., 6)
- *     → Puis dans le camp adverse (Nord) : de C7 vers C1 (idx décroissant : 6, 5, ..., 0)
- *     → Puis revient en Sud de C1 ... (boucle)
+ *       Nord: C1 → C2 → C3 → C4 → C5 → C6 → C7
+ *                                                ↓
+ *       Sud:  C1 ← C2 ← C3 ← C4 ← C5 ← C6 ← C7
+ *         ↑__________________________________________|
  *
- *   Affichage visuel (gauche→droite) :
- *     Nord affiché : [C7][C6][C5][C4][C3][C2][C1]  → "gauche→droite" = idx décroissant visuellement
- *     Sud  affiché : [C1][C2][C3][C4][C5][C6][C7]  → "gauche→droite" = idx croissant visuellement
+ *   Cycle interne (indices 0..6 = C1..C7) :
+ *     Nord[0], Nord[1], ..., Nord[6], Sud[6], Sud[5], ..., Sud[0], Nord[0], ...
  *
- *   SENS DE DISTRIBUTION conforme à la règle demandée :
- *     Joueur Nord : son camp gauche→droite (visuellement C7→C1 soit idx 6→0),
- *                   puis camp Sud droite→gauche (visuellement C7→C1 soit idx 6→0).
- *     Joueur Sud  : son camp gauche→droite (visuellement C1→C7 soit idx 0→6),
- *                   puis camp Nord droite→gauche (visuellement C1→C7 soit idx 0→6 —
- *                   ce qui est idx croissant, car Nord est affiché inversé).
- *
- *   En interne (indices 0..6 = C1..C7), la séquence circulaire est :
- *     Nord (player=0) depuis idx :
- *       propre camp  : idx-1, idx-2, ..., 0   (vers C1, sens visuel gauche→droite)
- *       camp adverse : 0, 1, 2, ..., 6        (Sud C1→C7, sens visuel droite→gauche)
- *       puis boucle  : 6, 5, ..., 0 (Nord), 0, 1, ..., 6 (Sud), ...
- *
- *     Sud (player=1) depuis idx :
- *       propre camp  : idx+1, idx+2, ..., 6   (vers C7, sens visuel gauche→droite)
- *       camp adverse : 6, 5, 4, ..., 0        (Nord C7→C1, sens visuel droite→gauche)
- *       puis boucle  : 0, 1, ..., 6 (Sud), 6, 5, ..., 0 (Nord), ...
+ *   Tout joueur distribue depuis sa case de départ (exclue) vers la case
+ *   suivante dans ce sens unique, en boucle.
+ *   Si seeds > 13, la case de départ est sautée lors du tour complet.
  */
 
 /* ============================================================
@@ -94,39 +77,35 @@ let historyOpen   = false;
 /* ============================================================
    GÉNÉRATEUR DE SÉQUENCE — DISTRIBUTION CIRCULAIRE
    
-   Le plateau tourne en boucle de 14 cases numérotées comme suit :
+   Chaîne circulaire unique (14 cases), sens unique pour les 2 joueurs :
    
-   Pour le Joueur Sud (player=1) — sens visuel gauche→droite dans son camp :
-     Cycle : Sud[0], Sud[1], ..., Sud[6], Nord[6], Nord[5], ..., Nord[0], Sud[0], ...
-     (C1 à C7 chez Sud, puis C7 à C1 chez Nord, en boucle)
+     Nord[0]→Nord[1]→...→Nord[6]→Sud[6]→Sud[5]→...→Sud[0]→Nord[0]→...
+     (C1→C7 chez Nord, puis C7→C1 chez Sud, en boucle)
    
-   Pour le Joueur Nord (player=0) — sens visuel gauche→droite dans son camp :
-     Cycle : Nord[6], Nord[5], ..., Nord[0], Sud[0], Sud[1], ..., Sud[6], Nord[6], ...
-     (C7 à C1 chez Nord, puis C1 à C7 chez Sud, en boucle)
+   Schéma :
+     Nord: C1 → C2 → C3 → C4 → C5 → C6 → C7
+                                              ↓
+     Sud:  C1 ← C2 ← C3 ← C4 ← C5 ← C6 ← C7
+       ↑_______________________________________↑
    
    La case de départ est sautée si seeds > 13.
 ============================================================ */
 
 /**
  * Retourne la séquence de cases {camp, idx} où déposer les graines.
- * @param {number} player    - 0=Nord, 1=Sud
- * @param {number} startIdx  - index de la case de départ (0=C1 .. 6=C7)
- * @param {number} seeds     - nombre de graines à distribuer
+ * @param {number} player        - 0=Nord, 1=Sud
+ * @param {number} startIdx      - index de la case de départ (0=C1 .. 6=C7)
+ * @param {number} seeds         - nombre de graines à distribuer
  * @param {boolean} sauterDepart - sauter la case de départ si seeds > 13
  */
 function genererSequence(player, startIdx, seeds, sauterDepart) {
-  // Construire le cycle complet de 14 cases selon le joueur
-  // Joueur Sud (1)  : Sud 0..6, puis Nord 6..0
-  // Joueur Nord (0) : Nord 6..0, puis Sud 0..6
+  // Cycle fixe commun aux deux joueurs :
+  //   Nord[0], Nord[1], ..., Nord[6], Sud[6], Sud[5], ..., Sud[0]
   const cycle = [];
-  if (player === 1) {
-    for (let i = 0; i <= 6; i++) cycle.push({ camp: 1, idx: i });   // Sud C1→C7
-    for (let i = 6; i >= 0; i--) cycle.push({ camp: 0, idx: i });   // Nord C7→C1
-  } else {
-    for (let i = 6; i >= 0; i--) cycle.push({ camp: 0, idx: i });   // Nord C7→C1
-    for (let i = 0; i <= 6; i++) cycle.push({ camp: 1, idx: i });   // Sud C1→C7
-  }
-  // Trouver la position de départ dans le cycle
+  for (let i = 0; i <= 6; i++) cycle.push({ camp: 0, idx: i }); // Nord C1→C7
+  for (let i = 6; i >= 0; i--) cycle.push({ camp: 1, idx: i }); // Sud  C7→C1
+
+  // Trouver la position de la case de départ dans le cycle
   const startPos = cycle.findIndex(c => c.camp === player && c.idx === startIdx);
 
   const seq = [];
@@ -236,12 +215,17 @@ function initGame() {
 
 /* ============================================================
    CONSTRUCTION DU PLATEAU
-   Nord affiché : [C7][C6][C5][C4][C3][C2][C1]  indices 6→0
+   Nord affiché : [C1][C2][C3][C4][C5][C6][C7]  indices 0→6
    Sud  affiché : [C1][C2][C3][C4][C5][C6][C7]  indices 0→6
+
+   Visuellement :
+     Nord: C1 → C2 → C3 → C4 → C5 → C6 → C7
+             ↑                               ↓
+     Sud:  C1 ← C2 ← C3 ← C4 ← C5 ← C6 ← C7
 ============================================================ */
 function buildBoard() {
-  buildRow('north-row', 0, [6,5,4,3,2,1,0]);
-  buildRow('south-row', 1, [0,1,2,3,4,5,6]);
+  buildRow('north-row', 0, [0,1,2,3,4,5,6]);  // Nord affiché C1→C7 (gauche→droite)
+  buildRow('south-row', 1, [0,1,2,3,4,5,6]);  // Sud  affiché C1→C7 (gauche→droite)
 }
 
 function buildRow(rowId, player, indices) {
@@ -476,30 +460,30 @@ function calculerPrises(player, adverse, derniere) {
   let total = 0;
   let idx   = derniere.idx;
 
-  // Le sens de remontée en chaîne est l'inverse du sens d'arrivée dans le camp adverse :
-  //   Joueur Nord (0) arrive chez Sud en idx croissant (C1→C7)
-  //     → remonte en chaîne vers C1, donc idx décroissant (idx--)
-  //   Joueur Sud (1) arrive chez Nord en idx décroissant (C7→C1)
+  // Avec le cycle unique Nord[0..6] → Sud[6..0] :
+  //   Joueur Nord (0) arrive chez Sud en idx décroissant (C7→C1, idx 6→0)
   //     → remonte en chaîne vers C7, donc idx croissant (idx++)
+  //   Joueur Sud (1) arrive chez Nord en idx croissant (C1→C7, idx 0→6)
+  //     → remonte en chaîne vers C1, donc idx décroissant (idx--)
 
   if (player === 0) {
-    // Remontée vers C1 (idx décroissant)
-    while (idx >= 0) {
-      const val = board[adverse][idx];
-      if (val >= 2 && val <= 4) {
-        if (idx === 0 && total === 0) break; // C1 adverse : pas de capture directe
-        total += val;
-        idx--;
-      } else break;
-    }
-  } else {
-    // Remontée vers C7 (idx croissant)
+    // Remontée vers C7 (idx croissant) dans le camp Sud
     while (idx <= 6) {
       const val = board[adverse][idx];
       if (val >= 2 && val <= 4) {
         if (idx === 6 && total === 0) break; // C7 adverse : pas de capture directe
         total += val;
         idx++;
+      } else break;
+    }
+  } else {
+    // Remontée vers C1 (idx décroissant) dans le camp Nord
+    while (idx >= 0) {
+      const val = board[adverse][idx];
+      if (val >= 2 && val <= 4) {
+        if (idx === 0 && total === 0) break; // C1 adverse : pas de capture directe
+        total += val;
+        idx--;
       } else break;
     }
   }
@@ -514,18 +498,7 @@ function calculerPrises(player, adverse, derniere) {
 function effectuerPrises(player, adverse, derniere) {
   let idx = derniere.idx;
   if (player === 0) {
-    // Remontée vers C1 (idx décroissant)
-    while (idx >= 0) {
-      const val = board[adverse][idx];
-      if (val >= 2 && val <= 4) {
-        board[adverse][idx] = 0;
-        const pit = document.getElementById(`pit-${adverse}-${idx}`);
-        if (pit) { pit.textContent = 0; pit.classList.add('empty'); }
-        idx--;
-      } else break;
-    }
-  } else {
-    // Remontée vers C7 (idx croissant)
+    // Remontée vers C7 (idx croissant) dans le camp Sud
     while (idx <= 6) {
       const val = board[adverse][idx];
       if (val >= 2 && val <= 4) {
@@ -533,6 +506,17 @@ function effectuerPrises(player, adverse, derniere) {
         const pit = document.getElementById(`pit-${adverse}-${idx}`);
         if (pit) { pit.textContent = 0; pit.classList.add('empty'); }
         idx++;
+      } else break;
+    }
+  } else {
+    // Remontée vers C1 (idx décroissant) dans le camp Nord
+    while (idx >= 0) {
+      const val = board[adverse][idx];
+      if (val >= 2 && val <= 4) {
+        board[adverse][idx] = 0;
+        const pit = document.getElementById(`pit-${adverse}-${idx}`);
+        if (pit) { pit.textContent = 0; pit.classList.add('empty'); }
+        idx--;
       } else break;
     }
   }
@@ -697,10 +681,10 @@ function campVide(player) {
 }
 
 function atteignAdverse(player, idx, seeds) {
-  // Nombre de cases restantes dans son propre camp avant d'atteindre l'adversaire
-  // Joueur Sud (1)  : cases restantes = 6 - idx  (il va de idx vers 6, puis passe chez Nord)
-  // Joueur Nord (0) : cases restantes = idx      (il va de idx vers 0, puis passe chez Sud)
-  if (player === 1) return seeds > (6 - idx);
+  // Avec le cycle unique Nord[0..6] → Sud[6..0] :
+  //   Joueur Nord (0) : cases restantes dans son camp = 6 - idx (va de idx vers Nord[6])
+  //   Joueur Sud (1)  : cases restantes dans son camp = idx     (va de idx vers Sud[0], idx décroissant)
+  if (player === 0) return seeds > (6 - idx);
   else              return seeds > idx;
 }
 
